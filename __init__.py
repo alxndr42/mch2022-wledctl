@@ -10,7 +10,10 @@ import network
 import system
 import ujson
 
-from wled import WLED
+try:
+    from .wled import WLED  # Hatchery
+except Exception:
+    from wled import WLED  # main.py/wled.py in Simulator
 
 
 FOLDER = f'/apps/python/{system.currentApp()}'
@@ -73,7 +76,7 @@ def connect_to_wifi():
         if time.time() - start >= WIFI_TIMEOUT:
             break
     if not _wifi.isconnected():
-        raise Exception('WiFi not connected.')
+        raise Exception('WiFi is not connected.')
 
 
 # UI
