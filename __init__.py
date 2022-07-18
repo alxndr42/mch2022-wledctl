@@ -12,7 +12,8 @@ import ujson
 from wled import WLED
 
 
-CONFIG = f'/apps/{system.currentApp()}/config.json'
+FOLDER = f'/apps/python/{system.currentApp()}'
+CONFIG = f'/apps/python/{system.currentApp()}/config.json'
 
 
 _config = {
@@ -39,6 +40,10 @@ def read_config():
 
 def write_config():
     print('write_config')
+    try:
+        os.stat(FOLDER)
+    except Exception:
+        os.mkdir(FOLDER)
     with open(CONFIG, 'w') as file:
         ujson.dump(_config, file)
 
