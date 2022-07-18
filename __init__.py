@@ -6,6 +6,7 @@ import display
 import easydraw
 import keyboard
 import listbox
+import network
 import system
 import ujson
 
@@ -14,11 +15,15 @@ from wled import WLED
 
 FOLDER = f'/apps/python/{system.currentApp()}'
 CONFIG = f'/apps/python/{system.currentApp()}/config.json'
-
+WIFI_TIMEOUT = 5
 
 _config = {
     'host': '4.3.2.1',
+    'wifi': False,
+    'wifi_name': '',
+    'wifi_pass': '',
 }
+_wifi = None
 _wled = None
 
 _listbox = listbox.List(0, 0, display.width() - 1, display.height() - 1)
@@ -46,6 +51,29 @@ def write_config():
         os.mkdir(FOLDER)
     with open(CONFIG, 'w') as file:
         ujson.dump(_config, file)
+
+
+# Network
+
+
+def connect_to_wifi():
+    if not _config['wifi']:
+        return
+    global _wifi
+    _wifi = network.WLAN(network.STA_IF)
+    _wifi.active(True)
+    if _config['wifi_pass']:
+        _wifi.connect(_config['wifi_name'], _config['wifi_pass'])
+    else:
+        _wifi.connect(_config['wifi_name'])
+    start = time.time()
+    while not _wifi.isconnected():
+        print('Waiting for Wifi...')
+        time.sleep(1)
+        if time.time() - start >= WIFI_TIMEOUT:
+            break
+    if not _wifi.isconnected():
+        raise Exception('WiFi not connected.')
 
 
 # UI
@@ -82,14 +110,25 @@ def draw_listbox(entries, callbacks):
 
 
 def draw_setup():
+    host = _config['host']
+    wifi = _config['wifi']
+    wifi_name = _config['wifi_name']
+    wifi_pass = _config['wifi_pass']
     entries = [
         'Connect',
-        f'Host: {_config['host']}',
+        f'Host: {host}',
+        f'Custom WiFi: {"Yes" if wifi else "No"}',
     ]
     callbacks = [
         cb_setup_connect,
         cb_setup_host,
+        cb_setup_custom_wifi,
     ]
+    if wifi:
+        entries.append(f'Network: {wifi_name if wifi_name else "None"}')
+        callbacks.append(cb_setup_network)
+        entries.append(f'Password: {"****" if wifi_pass else "None"}')
+        callbacks.append(cb_setup_password)
     draw_listbox(entries, callbacks)
 
 
@@ -121,6 +160,23 @@ def fail(message):
 # Callbacks
 
 
+def cb_setup_connect(text):
+    print('cb_setup_connect')
+    try:
+        connect_to_wifi()
+    except Exception as e:
+        print(f'ERROR: {e}')
+        fail('WiFi communication error.')
+    global _wled
+    _wled = WLED(_config['host'])
+    try:
+        _wled.connect()
+    except Exception as e:
+        print(f'ERROR: {e}')
+        fail('WLED communication error.')
+    draw_controls()
+
+
 def cb_setup_host(text):
     print('cb_setup_host')
     keyboard.show('Host', _config['host'], cb_setup_host_accept)
@@ -134,16 +190,35 @@ def cb_setup_host_accept(text):
     draw_setup()
 
 
-def cb_setup_connect(text):
-    print('cb_setup_connect')
-    global _wled
-    _wled = WLED(_config['host'])
-    try:
-        _wled.connect()
-    except Exception as e:
-        print(f'ERROR: {e}')
-        fail('WLED communication error.')
-    draw_controls()
+def cb_setup_custom_wifi(text):
+    print('cb_setup_custom_wifi')
+    _config['wifi'] = not _config['wifi']
+    write_config()
+    draw_setup()
+
+
+def cb_setup_network(text):
+    print('cb_setup_network')
+    keyboard.show('Network', _config['wifi_name'], cb_setup_network_accept)
+
+
+def cb_setup_network_accept(text):
+    print('cb_setup_network_accept')
+    _config['wifi_name'] = text
+    write_config()
+    draw_setup()
+
+
+def cb_setup_password(text):
+    print('cb_setup_password')
+    keyboard.show('Password', _config['wifi_pass'], cb_setup_password_accept)
+
+
+def cb_setup_password_accept(text):
+    print('cb_setup_password_accept')
+    _config['wifi_pass'] = text
+    write_config()
+    draw_setup()
 
 
 def cb_controls_power(text):
