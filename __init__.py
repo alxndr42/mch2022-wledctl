@@ -6,9 +6,9 @@ import display
 import easydraw
 import keyboard
 import listbox
-import network
 import system
 import ujson
+import wifi
 
 try:
     from .wled import WLED  # Hatchery
@@ -18,7 +18,6 @@ except Exception:
 
 FOLDER = f'/apps/python/{system.currentApp()}'
 CONFIG = f'/apps/python/{system.currentApp()}/config.json'
-WIFI_TIMEOUT = 5
 
 _config = {
     'host': '4.3.2.1',
@@ -26,7 +25,6 @@ _config = {
     'wifi_name': '',
     'wifi_pass': '',
 }
-_wifi = None
 _wled = None
 
 _listbox = listbox.List(0, 0, display.width() - 1, display.height() - 1)
@@ -60,23 +58,16 @@ def write_config():
 
 
 def connect_to_wifi():
-    if not _config['wifi']:
-        return
-    global _wifi
-    _wifi = network.WLAN(network.STA_IF)
-    _wifi.active(True)
-    if _config['wifi_pass']:
-        _wifi.connect(_config['wifi_name'], _config['wifi_pass'])
+    print('connect_to_wifi')
+    if _config['wifi']:
+        if _config['wifi_pass']:
+            wifi.connect(_config['wifi_name'], _config['wifi_pass'])
+        else:
+            wifi.connect(_config['wifi_name'])
     else:
-        _wifi.connect(_config['wifi_name'])
-    start = time.time()
-    while not _wifi.isconnected():
-        print('Waiting for Wifi...')
-        time.sleep(1)
-        if time.time() - start >= WIFI_TIMEOUT:
-            break
-    if not _wifi.isconnected():
-        raise Exception('WiFi is not connected.')
+        wifi.connect()
+    if not wifi.wait():
+        raise Exception('WiFi connection timeout.')
 
 
 # UI
@@ -114,20 +105,20 @@ def draw_listbox(entries, callbacks):
 
 def draw_setup():
     host = _config['host']
-    wifi = _config['wifi']
+    custom_wifi = _config['wifi']
     wifi_name = _config['wifi_name']
     wifi_pass = _config['wifi_pass']
     entries = [
         'Connect',
         f'Host: {host}',
-        f'Custom WiFi: {"Yes" if wifi else "No"}',
+        f'Custom WiFi: {"Yes" if custom_wifi else "No"}',
     ]
     callbacks = [
         cb_setup_connect,
         cb_setup_host,
         cb_setup_custom_wifi,
     ]
-    if wifi:
+    if custom_wifi:
         entries.append(f'Network: {wifi_name if wifi_name else "None"}')
         callbacks.append(cb_setup_network)
         entries.append(f'Password: {"****" if wifi_pass else "None"}')
