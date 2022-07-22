@@ -6,6 +6,7 @@ import display
 import easydraw
 import keyboard
 import listbox
+import mch22
 import system
 import ujson
 import wifi
@@ -148,7 +149,7 @@ def draw_presets():
 def fail(message):
     easydraw.messageCentered(message)
     time.sleep(3)
-    system.launcher()
+    mch22.exit_python()
 
 
 # Callbacks
@@ -235,7 +236,7 @@ def cb_presets_accept(text):
 def on_home(pressed):
     if pressed:
         print('on_home')
-        system.launcher()
+        mch22.exit_python()
 
 
 # Main
