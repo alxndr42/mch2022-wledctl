@@ -14,11 +14,14 @@ import wifi
 try:
     from .wled import WLED  # Hatchery
 except Exception:
-    from wled import WLED  # main.py/wled.py in Simulator
+    from wled import WLED  # Simulator
 
 
-FOLDER = f'/apps/python/{system.currentApp()}'
-CONFIG = f'/apps/python/{system.currentApp()}/config.json'
+if system.currentApp().startswith('/'):
+    CONFIG = f'{system.currentApp()}/config.json'  # Hatchery
+else:
+    CONFIG = '/apps/python/wledctl.json'  # Simulator
+
 
 _config = {
     'host': '4.3.2.1',
@@ -38,6 +41,7 @@ _listbox.fgColor = display.WHITE
 
 def read_config():
     print('read_config')
+    global _config
     try:
         with open(CONFIG, 'r') as file:
             _config = ujson.load(file)
@@ -47,10 +51,6 @@ def read_config():
 
 def write_config():
     print('write_config')
-    try:
-        os.stat(FOLDER)
-    except Exception:
-        os.mkdir(FOLDER)
     with open(CONFIG, 'w') as file:
         ujson.dump(_config, file)
 
