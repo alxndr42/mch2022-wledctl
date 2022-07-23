@@ -157,6 +157,7 @@ def fail(message):
 
 def cb_setup_connect(text):
     print('cb_setup_connect')
+    easydraw.messageCentered("Connecting to WiFi...")
     try:
         connect_to_wifi()
     except Exception as e:
@@ -164,6 +165,7 @@ def cb_setup_connect(text):
         fail('WiFi communication error.')
     global _wled
     _wled = WLED(_config['host'])
+    easydraw.messageCentered("Connecting to WLED...")
     try:
         _wled.connect()
     except Exception as e:
